@@ -1,15 +1,20 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Transition } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { confidenceToBet } from "@/engine/game";
 import { useGameStore } from "@/store/useGameStore";
+
+const cardTransition: Transition = {
+  duration: 0.35,
+  ease: [0.16, 1, 0.3, 1],
+};
 
 const cardMotion = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -12 },
-  transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+  transition: cardTransition,
 };
 
 const pipMap: Record<string, number[]> = {
