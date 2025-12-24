@@ -1,5 +1,5 @@
 export const BASE_BANKROLL = 1000;
-export const WIN_MULTIPLIER = 0.6;
+export const WIN_MULTIPLIER = 1;
 export const VARIANCE_LOSS_CHANCE = 0.12;
 export const MIN_BET = 5;
 export const MAX_BET_RATIO = 0.35;

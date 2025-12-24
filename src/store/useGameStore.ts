@@ -10,6 +10,7 @@ export type GameStatus = "answering" | "resolved" | "gameover";
 export type RoundRecord = {
   id: string;
   roundId: string;
+  type: EventRound["type"];
   prompt: string;
   outcomes: string[];
   selectedIndex: number;
@@ -94,6 +95,7 @@ export const useGameStore = create<GameState>()(
         const lastOutcome: RoundRecord = {
           id: `${state.currentRound.id}-${Date.now()}`,
           roundId: state.currentRound.id,
+          type: state.currentRound.type,
           prompt: state.currentRound.prompt,
           outcomes: state.currentRound.outcomes,
           selectedIndex,
