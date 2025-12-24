@@ -2,8 +2,18 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { BASE_BANKROLL, confidenceMismatch, resolveRound } from "@/engine/game";
-import { createEventRound, resolveEventRound, type EventRound } from "@/engine/events";
+import {
+  BASE_BANKROLL,
+  confidenceMismatch,
+  payoutMultiplierForProbability,
+  resolveRound,
+} from "@/engine/game";
+import {
+  createEventRound,
+  getOutcomeProbability,
+  resolveEventRound,
+  type EventRound,
+} from "@/engine/events";
 
 export type GameStatus = "answering" | "resolved" | "gameover";
 
@@ -15,6 +25,8 @@ export type RoundRecord = {
   outcomes: string[];
   selectedIndex: number;
   outcomeIndex: number;
+  outcomeProbability: number;
+  payoutMultiplier: number;
   confidence: number;
   bet: number;
   decisionCorrect: boolean;
@@ -40,7 +52,7 @@ type GameState = {
   resetGame: () => void;
 };
 
-const STORAGE_VERSION = 3;
+const STORAGE_VERSION = 5;
 
 const buildInitialState = () => {
   const currentRound = createEventRound();
@@ -58,7 +70,7 @@ const buildInitialState = () => {
 };
 
 const sanitizePersistedState = (state?: Partial<GameState>) => {
-  if (!state || !state.currentRound) {
+  if (!state || !state.currentRound?.definitionId) {
     return buildInitialState();
   }
   const lastOutcome = state.lastOutcome ?? null;
@@ -81,10 +93,16 @@ export const useGameStore = create<GameState>()(
         }
         const outcomeIndex = resolveEventRound(state.currentRound);
         const decisionCorrect = selectedIndex === outcomeIndex;
+        const outcomeProbability = getOutcomeProbability(
+          state.currentRound.definitionId,
+          selectedIndex
+        );
+        const payoutMultiplier = payoutMultiplierForProbability(outcomeProbability);
         const result = resolveRound({
           bankroll: state.bankroll,
           confidence,
           isCorrect: decisionCorrect,
+          payoutMultiplier,
         });
         const bankrollAfter = Math.max(0, state.bankroll + result.delta);
         const mismatch = confidenceMismatch(confidence, decisionCorrect);
@@ -100,6 +118,8 @@ export const useGameStore = create<GameState>()(
           outcomes: state.currentRound.outcomes,
           selectedIndex,
           outcomeIndex,
+          outcomeProbability,
+          payoutMultiplier,
           confidence,
           bet: result.bet,
           decisionCorrect,
