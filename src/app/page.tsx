@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, type Transition } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
-import { confidenceToBet } from "@/engine/game";
+import { confidenceToBet, payoutMultiplierForProbability } from "@/engine/game";
 import { useGameStore } from "@/store/useGameStore";
 
 const cardTransition: Transition = {
@@ -35,6 +35,17 @@ function OutcomeVisual({
   label: string;
   resolved: boolean;
 }) {
+  const colorMap: Record<string, string> = {
+    Blue: "bg-blue-500",
+    Red: "bg-red-500",
+    Green: "bg-emerald-500",
+    Orange: "bg-orange-400",
+    Cream: "bg-amber-200",
+    Gold: "bg-yellow-400",
+    Purple: "bg-purple-500",
+    Black: "bg-zinc-900",
+  };
+
   if (!resolved) {
     return (
       <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-dashed border-black/20 bg-white/60 text-2xl font-semibold text-[var(--muted)]">
@@ -72,10 +83,7 @@ function OutcomeVisual({
   }
 
   if (type === "bag") {
-    const color =
-      label === "Blue"
-        ? "bg-blue-500"
-        : "bg-red-500";
+    const color = colorMap[label] ?? "bg-zinc-300";
     return (
       <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white shadow-[var(--shadow)]">
         <div className={`h-12 w-12 rounded-full ${color}`} />
@@ -83,12 +91,7 @@ function OutcomeVisual({
     );
   }
 
-  const spinnerColor =
-    label === "Green"
-      ? "bg-emerald-500"
-      : label === "Orange"
-        ? "bg-orange-400"
-        : "bg-amber-200";
+  const spinnerColor = colorMap[label] ?? "bg-amber-200";
   return (
     <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-[var(--shadow)]">
       <div className={`h-12 w-12 rotate-45 rounded-lg ${spinnerColor}`} />
@@ -126,6 +129,19 @@ export default function Home() {
     () => confidenceToBet(confidence, bankroll),
     [confidence, bankroll]
   );
+  const oddsProbability = useMemo(() => {
+    if (!currentRound || selectedIndex === null) {
+      return null;
+    }
+    if (currentRound.outcomes.length === 0) {
+      return null;
+    }
+    return 1 / currentRound.outcomes.length;
+  }, [currentRound, selectedIndex]);
+  const payoutPreview =
+    oddsProbability !== null
+      ? Math.round(bet * payoutMultiplierForProbability(oddsProbability))
+      : null;
 
   const accuracy = totalRounds ? (correctRounds / totalRounds) * 100 : 0;
   const avgConfidence = totalRounds ? totalConfidence / totalRounds : 0;
@@ -220,7 +236,7 @@ export default function Home() {
                   onClick={() => setShowGame(false)}
                   className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]"
                 >
-                  Lobby
+                  Back to home
                 </button>
                 <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
                   Round Result
@@ -294,7 +310,7 @@ export default function Home() {
                   onClick={() => setShowGame(false)}
                   className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]"
                 >
-                  Lobby
+                  Back to home
                 </button>
                 <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
                   Round {totalRounds + 1}
@@ -369,6 +385,11 @@ export default function Home() {
                   onChange={(event) => setConfidence(Number(event.target.value))}
                   className="mt-3 w-full accent-[var(--accent)]"
                 />
+                <div className="mt-2 text-xs text-[var(--muted)]">
+                  {oddsProbability
+                    ? `Odds 1/${currentRound.outcomes.length} | Est. win +${payoutPreview} pts`
+                    : "Select an outcome to see odds and payout."}
+                </div>
                 <div className="mt-3 flex flex-col gap-2">
                   <button
                     type="button"
